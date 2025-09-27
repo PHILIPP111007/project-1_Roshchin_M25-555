@@ -3,6 +3,10 @@
 To install this package run:
 
 ```bash
+conda env create -f ./env.yml
+
+conda activate labyrinth_game
+
 pip install .
 ```
 
