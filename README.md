@@ -38,3 +38,5 @@ Development:
 conda env create -f ./env.yml
 conda activate labyrinth_game
 ```
+
+Video: <https://asciinema.org/a/LuOpG1uyEMaDkLteFQPg8TPTP>

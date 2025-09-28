@@ -1,8 +1,8 @@
 import math
 import sys
 
+from labyrinth_game.constants import COMMANDS, ROOMS
 from labyrinth_game.types import GAME_STATE, ROOM
-from labyrinth_game.constants import ROOMS, COMMANDS
 
 
 def show_help():

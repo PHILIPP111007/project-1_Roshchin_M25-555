@@ -1,9 +1,8 @@
-from labyrinth_game.types import GAME_STATE, ROOM
 from labyrinth_game.constants import ROOMS
+from labyrinth_game.types import GAME_STATE, ROOM
 from labyrinth_game.utils import (
-    describe_current_room,
     attempt_open_treasure,
-    trigger_trap,
+    describe_current_room,
     random_event,
 )
 

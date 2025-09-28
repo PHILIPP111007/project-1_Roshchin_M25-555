@@ -1,15 +1,14 @@
 import sys
 
-from labyrinth_game.types import GAME_STATE
 from labyrinth_game.player_actions import (
     get_input,
-    show_inventory,
     move_player,
+    show_inventory,
     take_item,
     use_item,
 )
-from labyrinth_game.utils import solve_puzzles, describe_current_room, show_help
-
+from labyrinth_game.types import GAME_STATE
+from labyrinth_game.utils import describe_current_room, show_help, solve_puzzles
 
 game_state = {
     "player_inventory": [],  # Инвентарь игрока
