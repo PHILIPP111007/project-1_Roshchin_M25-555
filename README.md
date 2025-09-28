@@ -1,5 +1,7 @@
 # project-1_Roshchin_M25-555
 
+This is a game.
+
 To install this package run:
 
 ```bash
