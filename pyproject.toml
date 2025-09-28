@@ -1,10 +1,30 @@
+[project]
+name = "labyrinth-game"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Philipp Roshchin",email = "r.phil@yandex.ru"}
+]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+]
+
+[tool.poetry.scripts]
+project = "labyrinth_game.main:main" 
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.13.2"
+
 [build-system]
-requires = ["setuptools", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["poetry-core>=2.0.0,<3.0.0", "setuptools", "wheel"]
+build-backend = "poetry.core.masonry.api"
+# build-backend = "setuptools.build_meta"
 
 [tool.ruff]
 line-length = 88
-target-version = "py312"
+target-version = "py313"
 exclude = ["venv", ".venv", "dist", "__pycache__"]
 
 [tool.ruff.lint]

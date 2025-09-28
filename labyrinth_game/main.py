@@ -13,15 +13,15 @@ from labyrinth_game.utils import solve_puzzles, describe_current_room, show_help
 
 game_state = {
     "player_inventory": [],  # Инвентарь игрока
-    # "current_room": "entrance", # Текущая комната
-    "current_room": "treasure_room",  # Текущая комната
+    "current_room": "entrance",  # Текущая комната
     "game_over": False,  # Значения окончания игры
     "steps_taken": 0,  # Количество шагов
     "rewards": 0,  # награда за ответы на загадки
+    "life": 10,
+    "coins": 0,
 }
 
 
-# TODO: must update game_state
 def process_command(game_state: GAME_STATE, command: str):
     command = command.split(" ")
 
@@ -40,7 +40,8 @@ def process_command(game_state: GAME_STATE, command: str):
         case "go":
             move_player(game_state=game_state, direction=second_command_part)
         case "take":
-            take_item(game_state=game_state, item_name=second_command_part)
+            item_name = " ".join(command[1:])
+            take_item(game_state=game_state, item_name=item_name)
         case "inventory":
             show_inventory(game_state=game_state)
         case "solve":

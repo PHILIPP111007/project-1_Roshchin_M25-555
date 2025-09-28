@@ -1,17 +1,17 @@
+import math
+import sys
+
 from labyrinth_game.types import GAME_STATE, ROOM
-from labyrinth_game.constants import ROOMS
+from labyrinth_game.constants import ROOMS, COMMANDS
 
 
 def show_help():
     print("\nДоступные команды:")
-    print("  go <direction>  - перейти в направлении (north/south/east/west)")
-    print("  look            - осмотреть текущую комнату")
-    print("  take <item>     - поднять предмет")
-    print("  use <item>      - использовать предмет из инвентаря")
-    print("  inventory       - показать инвентарь")
-    print("  solve           - попытаться решить загадку в комнате")
-    print("  quit            - выйти из игры")
-    print("  help            - показать это сообщение")
+
+    keys = COMMANDS.keys()
+    max_len = len(max(keys, key=lambda x: len(x)))
+    for key, value in COMMANDS.items():
+        print(key, " " * (max_len - len(key)), value)
 
 
 def describe_current_room(game_state: GAME_STATE):
@@ -57,7 +57,7 @@ def solve_puzzles(game_state: GAME_STATE) -> GAME_STATE | None:
 
     user_answer = input("Ваш ответ: ")
 
-    if user_answer == correct_answer:
+    if user_answer == correct_answer[0] or user_answer == correct_answer[1]:
         print("Вы разгадали загадку!")
         current_room["puzzle"] = None
 
@@ -103,3 +103,57 @@ def attempt_open_treasure(game_state: GAME_STATE) -> GAME_STATE:
         print("Сундук уже открыт или отсутствует.")
 
     return game_state
+
+
+def pseudo_random(seed: int, modulo: int) -> int:
+    value = (math.sin(seed) * 10_000) % 1
+    result = int(value * modulo)
+    return result
+
+
+def trigger_trap(game_state: GAME_STATE):
+    n = pseudo_random(seed=1, modulo=10)
+
+    game_state["life"] -= n
+
+    if "torch" in game_state["player_inventory"]:
+        print("Вы чуть не наткнулись на ловушкку.")
+    else:
+        print("Сработала ловушка!")
+        print(f"Вы потеряли {n} сердец")
+
+        if game_state["life"] <= 0:
+            print("Вы проиграли.")
+            game_state["game_over"] = True
+
+            sys.exit(0)
+        else:
+            items_count = len(game_state["player_inventory"])
+
+            if items_count != 0:
+                n = pseudo_random(seed=1, modulo=items_count)
+                item = game_state["player_inventory"][n]
+                print(f"Вы потеряли {item}")
+                game_state["player_inventory"].remove(item)
+
+
+def random_event(game_state: GAME_STATE, room: ROOM):
+    if_random_event = pseudo_random(seed=1, modulo=11)
+
+    if if_random_event == 10:
+        event_type = pseudo_random(seed=1, modulo=4)
+
+        match event_type:
+            # игрок поднял монетку
+            case 0:
+                game_state["coins"] += 1
+                print(f"Вы подняли монетку! Всего у вас {game_state['coins']} монет.")
+            # испугrandom_event
+            case 1:
+                print("Игрок слышит шорох...")
+                sword = "sword" in game_state["player_inventory"]
+                if sword:
+                    print("Вы отпугнули существо.")
+            case 3:
+                if room["trap"]:
+                    trigger_trap(game_state=game_state)

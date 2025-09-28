@@ -1,6 +1,11 @@
 from labyrinth_game.types import GAME_STATE, ROOM
 from labyrinth_game.constants import ROOMS
-from labyrinth_game.utils import describe_current_room, attempt_open_treasure
+from labyrinth_game.utils import (
+    describe_current_room,
+    attempt_open_treasure,
+    trigger_trap,
+    random_event,
+)
 
 
 def get_input() -> str:
@@ -29,6 +34,9 @@ def move_player(game_state: GAME_STATE, direction: str) -> GAME_STATE:
         game_state["current_room"] = new_room
         game_state["steps_taken"] += 1
         describe_current_room(game_state=game_state)
+
+        new_room_dict: ROOM = ROOMS[new_room]
+        random_event(game_state=game_state, room=new_room_dict)
     else:
         print("Нельзя пойти в этом направлении.")
 
