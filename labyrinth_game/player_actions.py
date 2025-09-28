@@ -8,11 +8,15 @@ from labyrinth_game.utils import (
 
 
 def get_input() -> str:
+    """Gets user input"""
+
     user_command = input("> ")
     return user_command
 
 
 def show_inventory(game_state: GAME_STATE) -> None:
+    """Get inventory"""
+
     inventory: list = game_state["player_inventory"]
 
     if len(inventory) > 0:
@@ -23,6 +27,8 @@ def show_inventory(game_state: GAME_STATE) -> None:
 
 
 def move_player(game_state: GAME_STATE, direction: str) -> GAME_STATE:
+    """Move"""
+
     current_room: ROOM = ROOMS[game_state["current_room"]]
 
     exits: dict[str, str] = current_room["exits"]
@@ -43,6 +49,8 @@ def move_player(game_state: GAME_STATE, direction: str) -> GAME_STATE:
 
 
 def take_item(game_state: GAME_STATE, item_name: str) -> GAME_STATE:
+    """Take item from room"""
+
     current_room: ROOM = ROOMS[game_state["current_room"]]
 
     items = current_room["items"]
@@ -59,6 +67,8 @@ def take_item(game_state: GAME_STATE, item_name: str) -> GAME_STATE:
 
 
 def use_item(game_state: GAME_STATE, item_name: str):
+    """Use existing item"""
+
     user_items = game_state["player_inventory"]
 
     if item_name in user_items:

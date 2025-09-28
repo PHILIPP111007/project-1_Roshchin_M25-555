@@ -22,6 +22,8 @@ game_state = {
 
 
 def process_command(game_state: GAME_STATE, command: str):
+    """Command processing"""
+
     command = command.split(" ")
 
     first_command_part = command[0]
@@ -55,6 +57,8 @@ def process_command(game_state: GAME_STATE, command: str):
 
 
 def main():
+    """Main function"""
+
     print("Добро пожаловать в Лабиринт сокровищ!")
     show_help()
 

@@ -9,6 +9,11 @@ COMMANDS = {
     "help": "показать это сообщение",
 }
 
+IF_RANDOM_EVENT = 10
+EVENT_COIN = 0
+EVENT_SWORD = 1
+EVENT_TRAP = 2
+
 ROOMS = {
     "entrance": {
         "description": "Вы в темном входе лабиринта...",
@@ -19,7 +24,7 @@ ROOMS = {
     },
     "hall": {
         "description": "Большой зал с эхом. По центру стоит пьедестал с "
-                        "запечатанным сундуком.",
+        "запечатанным сундуком.",
         "exits": {"south": "entrance", "west": "library", "north": "treasure_room"},
         "items": [],
         "puzzle": (
@@ -31,7 +36,7 @@ ROOMS = {
     },
     "trap_room": {
         "description": "Комната с хитрой плиточной поломкой. "
-                        "На стене видна надпись: 'Осторожно — ловушка'.",
+        "На стене видна надпись: 'Осторожно — ловушка'.",
         "exits": {"west": "entrance"},
         "items": ["rusty key"],
         "puzzle": (
@@ -43,7 +48,7 @@ ROOMS = {
     },
     "library": {
         "description": "Пыльная библиотека. На полках старые свитки. "
-                        "Где-то здесь может быть ключ от сокровищницы.",
+        "Где-то здесь может быть ключ от сокровищницы.",
         "exits": {"east": "hall", "north": "armory"},
         "items": ["ancient book"],
         "puzzle": (
@@ -55,7 +60,7 @@ ROOMS = {
     },
     "armory": {
         "description": "Старая оружейная комната. На стене висит меч, "
-                        "рядом — небольшая бронзовая шкатулка.",
+        "рядом — небольшая бронзовая шкатулка.",
         "exits": {"south": "library"},
         "items": ["sword", "bronze box"],
         "puzzle": None,
@@ -63,7 +68,7 @@ ROOMS = {
     },
     "treasure_room": {
         "description": "Комната, на столе большой сундук. "
-                        "Дверь заперта — нужен особый ключ.",
+        "Дверь заперта — нужен особый ключ.",
         "exits": {"south": "hall"},
         "items": ["treasure chest"],
         "puzzle": (
@@ -75,7 +80,7 @@ ROOMS = {
     },
     "cave": {  # новая комната
         "description": "Темная пещера с натёчными образованиями. "
-                        "Здесь пахнет сыростью и плесенью.",
+        "Здесь пахнет сыростью и плесенью.",
         "exits": {"west": "armory", "south": "secret_passage"},
         "items": ["gemstone"],
         "puzzle": (
@@ -87,7 +92,7 @@ ROOMS = {
     },
     "secret_passage": {  # вторая новая комната
         "description": "Тайный проход, ведущий неизвестно куда. "
-                        "Стены покрыты старинными символами.",
+        "Стены покрыты старинными символами.",
         "exits": {"north": "cave"},
         "items": ["hidden map"],
         "puzzle": (

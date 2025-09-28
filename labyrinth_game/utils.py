@@ -1,11 +1,20 @@
 import math
 import sys
 
-from labyrinth_game.constants import COMMANDS, ROOMS
+from labyrinth_game.constants import (
+    COMMANDS,
+    EVENT_COIN,
+    EVENT_SWORD,
+    EVENT_TRAP,
+    IF_RANDOM_EVENT,
+    ROOMS,
+)
 from labyrinth_game.types import GAME_STATE, ROOM
 
 
 def show_help():
+    """Prints help message"""
+
     print("\nДоступные команды:")
 
     keys = COMMANDS.keys()
@@ -15,6 +24,8 @@ def show_help():
 
 
 def describe_current_room(game_state: GAME_STATE):
+    """Describes current room"""
+
     current_room: ROOM = ROOMS[game_state["current_room"]]
 
     if current_room["items"]:
@@ -45,6 +56,8 @@ def describe_current_room(game_state: GAME_STATE):
 
 
 def solve_puzzles(game_state: GAME_STATE) -> GAME_STATE | None:
+    """Solve puzzle"""
+
     current_room: ROOM = ROOMS[game_state["current_room"]]
 
     if current_room["puzzle"] is None:
@@ -75,6 +88,8 @@ def solve_puzzles(game_state: GAME_STATE) -> GAME_STATE | None:
 
 
 def attempt_open_treasure(game_state: GAME_STATE) -> GAME_STATE:
+    """Attempt open treasure"""
+
     current_room: ROOM = ROOMS[game_state["current_room"]]
     items = current_room["items"]
     user_items = game_state["player_inventory"]
@@ -106,20 +121,22 @@ def attempt_open_treasure(game_state: GAME_STATE) -> GAME_STATE:
 
 
 def pseudo_random(seed: int, modulo: int) -> int:
+    """Gets pseudo random number from seed and modulo"""
+
     value = (math.sin(seed) * 10_000) % 1
     result = int(value * modulo)
     return result
 
 
 def trigger_trap(game_state: GAME_STATE):
-    n = pseudo_random(seed=1, modulo=10)
-
-    game_state["life"] -= n
+    """Triggers trap"""
 
     if "torch" in game_state["player_inventory"]:
         print("Вы чуть не наткнулись на ловушкку.")
     else:
         print("Сработала ловушка!")
+        n = pseudo_random(seed=1, modulo=10)
+        game_state["life"] -= n
         print(f"Вы потеряли {n} сердец")
 
         if game_state["life"] <= 0:
@@ -138,22 +155,21 @@ def trigger_trap(game_state: GAME_STATE):
 
 
 def random_event(game_state: GAME_STATE, room: ROOM):
+    """Get random event"""
+
     if_random_event = pseudo_random(seed=1, modulo=11)
 
-    if if_random_event == 10:
+    if if_random_event == IF_RANDOM_EVENT:
         event_type = pseudo_random(seed=1, modulo=4)
 
-        match event_type:
-            # игрок поднял монетку
-            case 0:
-                game_state["coins"] += 1
-                print(f"Вы подняли монетку! Всего у вас {game_state['coins']} монет.")
-            # испугrandom_event
-            case 1:
-                print("Игрок слышит шорох...")
-                sword = "sword" in game_state["player_inventory"]
-                if sword:
-                    print("Вы отпугнули существо.")
-            case 3:
-                if room["trap"]:
-                    trigger_trap(game_state=game_state)
+        if event_type == EVENT_COIN:
+            game_state["coins"] += 1
+            print(f"Вы подняли монетку! Всего у вас {game_state['coins']} монет.")
+        elif event_type == EVENT_SWORD:
+            print("Игрок слышит шорох...")
+            sword = "sword" in game_state["player_inventory"]
+            if sword:
+                print("Вы отпугнули существо.")
+        elif event_type == EVENT_TRAP:
+            if room["trap"]:
+                trigger_trap(game_state=game_state)
