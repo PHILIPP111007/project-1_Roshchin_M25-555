@@ -107,6 +107,7 @@ def attempt_open_treasure(game_state: GAME_STATE) -> GAME_STATE:
             game_state["game_over"] = True
             game_state["player_inventory"] = user_items
             print("Вы прошли игру!")
+            sys.exit(0)
         else:
             print("У вас нет ключей.")
             answer = input("Сундук заперт. ... Ввести код (да/нет)")
