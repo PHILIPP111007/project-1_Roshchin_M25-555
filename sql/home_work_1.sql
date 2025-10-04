@@ -1,3 +1,5 @@
+-- Вариант 4
+
 -- Таблица клиентов
 CREATE TABLE clients (
     id INTEGER PRIMARY KEY,
