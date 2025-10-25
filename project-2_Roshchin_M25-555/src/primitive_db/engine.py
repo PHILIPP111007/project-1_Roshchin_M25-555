@@ -12,7 +12,7 @@ from src.primitive_db.core import (
     update,
     delete,
 )
-from src.primitive_db.utils import parse_expression
+from src.primitive_db.utils import parse_expression, clear_cache
 
 
 def run():
@@ -35,6 +35,7 @@ def run():
 * <command> list_tables - показать список всех таблиц
 * <command> drop_table <имя_таблицы> - удалить таблицу
 * <command> info <имя_таблицы> - вывести информацию о таблице.
+* <command> clear_cache - очистка кеша
 
 * <command> insert into <имя_таблицы> values (<значение1>, <значение2>, ...) - создать запись.
 * <command> select from <имя_таблицы> where <столбец> = <значение> - прочитать записи по условию.
@@ -106,6 +107,8 @@ def run():
                     continue
                 table_name = args[1]
                 info(table_name=table_name)
+            elif command == "clear_cache":
+                clear_cache()
             elif command == "select":
                 if len(args) < 3:
                     print("Не приведены данные")

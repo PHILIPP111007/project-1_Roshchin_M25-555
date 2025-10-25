@@ -3,8 +3,10 @@ import json
 import re
 
 from src.primitive_db.constants import CONST
+from src.decorators import handle_db_errors
 
 
+@handle_db_errors
 def check_table_exists(table_name: str) -> str | None:
     """
     Check if table exists and returns table path.
@@ -41,6 +43,7 @@ def check_table_exists(table_name: str) -> str | None:
     return None
 
 
+@handle_db_errors
 def get_table_columns(table_name: str) -> list[dict[str, str]] | None:
     if CONST.DATABASE_PATH is None or (
         CONST.DATABASE_PATH is not None and not os.path.exists(CONST.DATABASE_PATH)
@@ -68,6 +71,7 @@ def get_table_columns(table_name: str) -> list[dict[str, str]] | None:
     return None
 
 
+@handle_db_errors
 def process_where_clause(
     table_name: str, where_clause: dict[str, str]
 ) -> dict[str, str | int | bool] | None:
@@ -83,16 +87,12 @@ def process_where_clause(
             t = column["type"]
 
             new_value: str | int | bool | None = None
-            try:
-                if t == "str":
-                    new_value = str(value)
-                elif t == "int":
-                    new_value = int(value)
-                elif t == "bool":
-                    new_value = bool(int(value))
-            except Exception:
-                print(f"Ошибка конвертации данных: {value} типа {t}")
-                return None
+            if t == "str":
+                new_value = str(value)
+            elif t == "int":
+                new_value = int(value)
+            elif t == "bool":
+                new_value = bool(int(value))
 
             if new_value is None:
                 return None
@@ -148,3 +148,9 @@ def parse_expression(where_clause: list[str]) -> dict[str, str]:
             result["unknown"] = condition
 
     return result
+
+
+def clear_cache():
+    """Очищает весь кеш"""
+    CONST.CACHE.clear()
+    print("Кеш очищен")

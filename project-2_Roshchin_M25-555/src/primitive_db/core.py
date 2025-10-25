@@ -9,6 +9,7 @@ import re
 
 from prettytable import from_csv, PrettyTable
 
+from src.decorators import handle_db_errors, confirm_action, log_time, create_cacher
 from src.primitive_db.constants import CONST
 from src.primitive_db.utils import (
     check_table_exists,
@@ -17,11 +18,8 @@ from src.primitive_db.utils import (
 )
 
 
+@handle_db_errors
 def load_database(file_path: str) -> None:
-    if not os.path.exists(file_path):
-        print(f"DATABASE {file_path} не существует")
-        return
-
     if not os.path.isfile(file_path):
         print("Это директория")
         return
@@ -59,6 +57,7 @@ def create_database(file_path: str, database_name: str) -> None:
         print(f"DATABASE {database_name} создана")
 
 
+@handle_db_errors
 def create_table(table_name: str, table_path: str, columns: list) -> None:
     """
     1) Она должна принимать текущие метаданные, имя таблицы и список столбцов.
@@ -145,6 +144,8 @@ def create_table(table_name: str, table_path: str, columns: list) -> None:
     print(f"Таблица {table_name} создана")
 
 
+@confirm_action
+@handle_db_errors
 def drop_table(table_name: str):
     """
     1) Проверяет существование таблицы. Если таблицы нет, выводит ошибку.
@@ -180,10 +181,12 @@ def drop_table(table_name: str):
     for table in tables:
         if not isinstance(table, dict):
             continue
-        name = table.get("name")
+        name: str | None = table.get("name")
         if name == table_name:
             table_flag = True
-            path = table.get("path")
+            path: str | None = table.get("path")
+            if path is None:
+                return
             if not os.path.exists(path):
                 print("Не удалось найти путь к таблице")
                 return
@@ -204,6 +207,7 @@ def drop_table(table_name: str):
     print(f"Таблица {table_name} удалена")
 
 
+@handle_db_errors
 def list_tables(table_name: str | None = None):
     if CONST.DATABASE_PATH is None or (
         CONST.DATABASE_PATH is not None and not os.path.exists(CONST.DATABASE_PATH)
@@ -276,7 +280,11 @@ def info(table_name: str) -> None:
     list_tables(table_name=table_name)
 
 
-def select(table_name: str, where_clause: dict[str, str] | None = None) -> None:
+# Модифицированная версия select с поддержкой кеширования
+@create_cacher
+@log_time
+@handle_db_errors
+def select(table_name: str, where_clause: dict[str, str] | None = None) -> dict | None:
     table_path = check_table_exists(table_name=table_name)
 
     if table_path is None:
@@ -284,15 +292,21 @@ def select(table_name: str, where_clause: dict[str, str] | None = None) -> None:
 
     content = []
     table = PrettyTable()
+    field_names = []
+
     with open(table_path, "r", encoding="utf-8") as file:
         if where_clause is None:
             table = from_csv(file, delimiter=CONST.SEPARATOR)
             print(table)
-            return
+            # Сохраняем данные для кеша
+            return {
+                "field_names": table.field_names if table.field_names else [],
+                "rows": table._rows if hasattr(table, "_rows") else [],
+            }
 
         reader = csv.DictReader(file, delimiter=CONST.SEPARATOR)
-        keys = list(reader.__next__().keys())
-        table.field_names = keys
+        field_names = list(reader.__next__().keys())
+        table.field_names = field_names
 
     where_clause_processed = process_where_clause(
         table_name=table_name, where_clause=where_clause
@@ -304,6 +318,7 @@ def select(table_name: str, where_clause: dict[str, str] | None = None) -> None:
     if columns is None:
         return None
 
+    rows_data = []
     with open(table_path, "r", encoding="utf-8") as file:
         reader = csv.DictReader(file, delimiter=CONST.SEPARATOR)
         for row in reader:
@@ -327,11 +342,17 @@ def select(table_name: str, where_clause: dict[str, str] | None = None) -> None:
             if flag:
                 values = list(row.values())
                 content.append(values)
+                rows_data.append(values)
 
         table.add_rows(content)
         print(table)
 
+    # Возвращаем данные для кеширования
+    return {"field_names": field_names, "rows": rows_data}
 
+
+@log_time
+@handle_db_errors
 def insert(table_name: str, values: str) -> None:
     table_path = check_table_exists(table_name=table_name)
 
@@ -351,19 +372,15 @@ def insert(table_name: str, values: str) -> None:
     for column, value in zip(columns, values_list):
         t = column["type"]
         processed_value: str | None = None
-        try:
-            if t == "str" and re.match(r'".+"', value):
-                processed_value = re.sub('"', "", value)
-            elif t == "int":
-                processed_value = str(int(value))
-            elif t == "bool" and (value == "true" or value == "false"):
-                if value == "true":
-                    processed_value = str(1)
-                elif value == "false":
-                    processed_value = str(0)
-        except Exception:
-            print(f"Ошибка конвертации значения: {value} типа {t}")
-            return
+        if t == "str" and re.match(r'".+"', value):
+            processed_value = re.sub('"', "", value)
+        elif t == "int":
+            processed_value = str(int(value))
+        elif t == "bool" and (value == "true" or value == "false"):
+            if value == "true":
+                processed_value = str(1)
+            elif value == "false":
+                processed_value = str(0)
 
         if processed_value is None:
             print(f"Ошибка конвертации значения: {value} типа {t}")
@@ -388,6 +405,7 @@ def insert(table_name: str, values: str) -> None:
     print(f"Запись с {last_ID=} успешно добавлена в таблицу {table_name}.")
 
 
+@handle_db_errors
 def update(
     table_name: str,
     where_clause: dict[str, str] | None = None,
@@ -464,24 +482,18 @@ def update(
                         column_exists = True
                         # Преобразуем значение к правильному типу
                         t = column["type"]
-                        try:
-                            if t == "str":
-                                row[key] = str(new_value)
-                            elif t == "int":
-                                row[key] = str(int(new_value))
-                            elif t == "bool":
-                                if str(new_value).lower() in ["true", "1", "yes"]:
-                                    row[key] = "1"
-                                elif str(new_value).lower() in ["false", "0", "no"]:
-                                    row[key] = "0"
-                                else:
-                                    print(f"Некорректное булево значение: {new_value}")
-                                    return
-                        except Exception as e:
-                            print(
-                                f"Ошибка конвертации значения {new_value} для колонки {key}: {e}"
-                            )
-                            return
+                        if t == "str":
+                            row[key] = str(new_value)
+                        elif t == "int":
+                            row[key] = str(int(new_value))
+                        elif t == "bool":
+                            if str(new_value).lower() in ["true", "1", "yes"]:
+                                row[key] = "1"
+                            elif str(new_value).lower() in ["false", "0", "no"]:
+                                row[key] = "0"
+                            else:
+                                print(f"Некорректное булево значение: {new_value}")
+                                return
                         break
 
                 if not column_exists:
@@ -497,6 +509,7 @@ def update(
     print(f"Обновлено {updated_count} записей в таблице {table_name}")
 
 
+@confirm_action
 def delete(table_name: str, where_clause: dict[str, str] | None = None) -> None:
     table_path = check_table_exists(table_name=table_name)
 
