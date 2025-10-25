@@ -36,4 +36,6 @@ delete from table_1 # Deletes all records
 delete from table_1 where ID=0
 
 delete from table_1 where ID=0 AND name="Konstantin"
+
+update table_1 set age = 29 where name = "Konstantin"
 ```

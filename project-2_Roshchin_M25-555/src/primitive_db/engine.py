@@ -88,9 +88,7 @@ def run():
                 table_name = args[1]
                 table_path = args[2]
                 columns = args[3:]
-                metadata = {}  # TODO
                 create_table(
-                    metadata=metadata,
                     table_name=table_name,
                     table_path=table_path,
                     columns=columns,
@@ -101,8 +99,7 @@ def run():
                     continue
 
                 table_name = args[1]
-                metadata = {}  # TODO
-                drop_table(metadata=metadata, table_name=table_name)
+                drop_table(table_name=table_name)
             elif command == "info":
                 if len(args) != 2:
                     print("Не приведены данные")
@@ -135,7 +132,47 @@ def run():
                 values = " ".join(args[4:])
                 insert(table_name=table_name, values=values)
             elif command == "update":
-                ...
+                if len(args) < 4 or args[2] != "set":
+                    print("Не приведены данные")
+                    continue
+
+                table_name = args[1]
+                where_clause = None
+                set_clause = None
+
+                flag = True
+                for i in range(len(args)):
+                    if args[i] == "where":
+                        if len(args[i + 1 :]) == 0:
+                            print("Не приведены данные")
+                            flag = False
+                            break
+                        where_clause = parse_expression(args[i + 1 :])
+
+                if where_clause is None:
+                    print("Ошибка")
+                    return
+
+                flag = True
+                data = []
+                for i in range(len(args)):
+                    if args[i] == "set":
+                        for j in range(i + 1, len(args) + 1):
+                            if args[j] == "where":
+                                break
+                            data.append(args[j])
+                        set_clause = parse_expression(data)
+                        break
+
+                if set_clause is None:
+                    print("Ошибка")
+                    return
+
+                update(
+                    table_name=table_name,
+                    where_clause=where_clause,
+                    set_clause=set_clause,
+                )
             elif command == "delete":
                 if len(args) < 3:
                     print("Не приведены данные")

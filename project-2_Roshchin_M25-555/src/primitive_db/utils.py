@@ -110,19 +110,12 @@ def parse_expression(where_clause: list[str]) -> dict[str, str]:
     Returns:
         Словарь, где ключи - названия полей, значения - условия
     """
-    # Объединяем все части условия в одну строку
     condition_str = " ".join(where_clause).strip()
-
-    # Убираем возможные кавычки и лишние пробелы
     condition_str = re.sub(r"\s+", " ", condition_str)
 
     result = {}
 
-    # Разбиваем на отдельные условия по AND/OR (базовый случай)
-    # Используем более сложное регулярное выражение для корректного разбиения
     conditions = re.split(r"\s+(AND|OR)\s+", condition_str, flags=re.IGNORECASE)
-
-    # Фильтруем - оставляем только условия, убирая операторы AND/OR
     conditions = [cond for cond in conditions if cond.upper() not in ["AND", "OR"]]
 
     for condition in conditions:
@@ -130,7 +123,6 @@ def parse_expression(where_clause: list[str]) -> dict[str, str]:
         if not condition:
             continue
 
-        # Паттерны для разных типов условий
         patterns = [
             # Простое равенство: field = value
             r"^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+)$",

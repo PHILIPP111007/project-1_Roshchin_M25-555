@@ -59,7 +59,7 @@ def create_database(file_path: str, database_name: str) -> None:
         print(f"DATABASE {database_name} создана")
 
 
-def create_table(metadata, table_name: str, table_path: str, columns: list) -> None:
+def create_table(table_name: str, table_path: str, columns: list) -> None:
     """
     1) Она должна принимать текущие метаданные, имя таблицы и список столбцов.
     2) Автоматически добавлять столбец ID:int в начало списка столбцов.
@@ -145,7 +145,7 @@ def create_table(metadata, table_name: str, table_path: str, columns: list) -> N
     print(f"Таблица {table_name} создана")
 
 
-def drop_table(metadata, table_name):
+def drop_table(table_name: str):
     """
     1) Проверяет существование таблицы. Если таблицы нет, выводит ошибку.
     2) Удаляет информацию о таблице из metadata и возвращает обновленный словарь.
@@ -389,8 +389,112 @@ def insert(table_name: str, values: str) -> None:
 
 
 def update(
-    table_name: str, set_clause, where_clause: dict[str, str] | None = None
-) -> None: ...
+    table_name: str,
+    where_clause: dict[str, str] | None = None,
+    set_clause: dict[str, str] | None = None,
+) -> None:
+    table_path = check_table_exists(table_name=table_name)
+
+    if table_path is None or where_clause is None or set_clause is None:
+        return None
+
+    # Обрабатываем условия WHERE
+    where_clause_processed = process_where_clause(
+        table_name=table_name, where_clause=where_clause
+    )
+    if where_clause_processed is None:
+        return None
+
+    # Обрабатываем значения SET
+    set_clause_processed = process_where_clause(
+        table_name=table_name, where_clause=set_clause
+    )
+    if set_clause_processed is None:
+        return None
+
+    # Получаем информацию о колонках таблицы
+    columns = get_table_columns(table_name=table_name)
+    if columns is None:
+        return None
+
+    # Читаем все данные из таблицы
+    content: list[dict] = []
+    fieldnames = []
+
+    with open(table_path, "r", encoding="utf-8") as file:
+        reader = csv.DictReader(file, delimiter=CONST.SEPARATOR)
+        fieldnames = reader.fieldnames  # Сохраняем названия колонок
+        if fieldnames is None:
+            print("Не удалось прочитать заголовки таблицы")
+            return
+
+        for row in reader:
+            content.append(row)
+
+    # Обновляем записи, соответствующие условию WHERE
+    updated_count = 0
+    for row in content:
+        # Проверяем условие WHERE
+        matches_where = True
+        for key, value in where_clause_processed.items():
+            row_value: str | int | bool | None = None
+            for column in columns:
+                if column["name"] == key:
+                    t = column["type"]
+                    if t == "str":
+                        row_value = str(row[key])
+                    elif t == "int":
+                        row_value = int(row[key])
+                    elif t == "bool":
+                        row_value = bool(int(row[key]))
+                    break
+
+            if row_value != value:
+                matches_where = False
+                break
+
+        # Если условие выполнено, обновляем запись
+        if matches_where:
+            updated_count += 1
+            for key, new_value in set_clause_processed.items():
+                # Проверяем, существует ли колонка для обновления
+                column_exists = False
+                for column in columns:
+                    if column["name"] == key:
+                        column_exists = True
+                        # Преобразуем значение к правильному типу
+                        t = column["type"]
+                        try:
+                            if t == "str":
+                                row[key] = str(new_value)
+                            elif t == "int":
+                                row[key] = str(int(new_value))
+                            elif t == "bool":
+                                if str(new_value).lower() in ["true", "1", "yes"]:
+                                    row[key] = "1"
+                                elif str(new_value).lower() in ["false", "0", "no"]:
+                                    row[key] = "0"
+                                else:
+                                    print(f"Некорректное булево значение: {new_value}")
+                                    return
+                        except Exception as e:
+                            print(
+                                f"Ошибка конвертации значения {new_value} для колонки {key}: {e}"
+                            )
+                            return
+                        break
+
+                if not column_exists:
+                    print(f"Колонка {key} не существует в таблице {table_name}")
+                    return
+
+    # Записываем обновленные данные обратно в файл
+    with open(table_path, "w", encoding="utf-8", newline="") as file:
+        writer = csv.DictWriter(file, fieldnames=fieldnames, delimiter=CONST.SEPARATOR)
+        writer.writeheader()
+        writer.writerows(content)
+
+    print(f"Обновлено {updated_count} записей в таблице {table_name}")
 
 
 def delete(table_name: str, where_clause: dict[str, str] | None = None) -> None:
