@@ -1,9 +1,9 @@
-import os
 import json
+import os
 import re
 
-from src.primitive_db.constants import CONST
 from src.decorators import handle_db_errors
+from src.primitive_db.constants import CONST
 
 
 @handle_db_errors
@@ -16,7 +16,8 @@ def check_table_exists(table_name: str) -> str | None:
         CONST.DATABASE_PATH is not None and not os.path.exists(CONST.DATABASE_PATH)
     ):
         print(
-            f"DATABASE {CONST.DATABASE_PATH} не подключена, вызовите <load_database> команду"
+            f"DATABASE {CONST.DATABASE_PATH} не подключена, вызовите <load_database> "
+            "команду"
         )
         return None
 
@@ -49,7 +50,8 @@ def get_table_columns(table_name: str) -> list[dict[str, str]] | None:
         CONST.DATABASE_PATH is not None and not os.path.exists(CONST.DATABASE_PATH)
     ):
         print(
-            f"DATABASE {CONST.DATABASE_PATH} не подключена, вызовите <load_database> команду"
+            f"DATABASE {CONST.DATABASE_PATH} не подключена, вызовите <load_database> "
+            "команду"
         )
         return None
 

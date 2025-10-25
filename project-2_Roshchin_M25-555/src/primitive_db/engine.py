@@ -1,18 +1,18 @@
 import sys
 
 from src.primitive_db.core import (
-    create_table,
-    drop_table,
-    list_tables,
     create_database,
-    load_database,
-    info,
-    select,
-    insert,
-    update,
+    create_table,
     delete,
+    drop_table,
+    info,
+    insert,
+    list_tables,
+    load_database,
+    select,
+    update,
 )
-from src.primitive_db.utils import parse_expression, clear_cache
+from src.primitive_db.utils import clear_cache, parse_expression
 
 
 def run():
@@ -31,16 +31,20 @@ def run():
 Функции:
 * <command> load_database <file_path> -  подключить базу данных
 * <command> create_database <имя_базы_данных> <file_path> - создать базу данных
-* <command> create_table <имя_таблицы> <table_path> <столбец1:тип> <столбец2:тип> .. - создать таблицу
+* <command> create_table <имя_таблицы> <table_path> <столбец1:тип> <столбец2:тип> .. - 
+создать таблицу
 * <command> list_tables - показать список всех таблиц
 * <command> drop_table <имя_таблицы> - удалить таблицу
 * <command> info <имя_таблицы> - вывести информацию о таблице.
 * <command> clear_cache - очистка кеша
 
-* <command> insert into <имя_таблицы> values (<значение1>, <значение2>, ...) - создать запись.
-* <command> select from <имя_таблицы> where <столбец> = <значение> - прочитать записи по условию.
+* <command> insert into <имя_таблицы> values (<значение1>, <значение2>, ...) -
+создать запись.
+* <command> select from <имя_таблицы> where <столбец> = <значение> - прочитать
+записи по условию.
 * <command> select from <имя_таблицы> - прочитать все записи.
-* <command> update <имя_таблицы> set <столбец1> = <новое_значение1> where <столбец_условия> = <значение_условия> - обновить запись.
+* <command> update <имя_таблицы> set <столбец1> = <новое_значение1> where
+<столбец_условия> = <значение_условия> - обновить запись.
 * <command> delete from <имя_таблицы> where <столбец> = <значение> - удалить запись.
 
 * <command> exit - выход из программы

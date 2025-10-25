@@ -2,19 +2,19 @@
 Здесь будет основная логика работы с таблицами и данными.
 """
 
-import os
-import json
 import csv
+import json
+import os
 import re
 
-from prettytable import from_csv, PrettyTable
+from prettytable import PrettyTable, from_csv
 
-from src.decorators import handle_db_errors, confirm_action, log_time, create_cacher
+from src.decorators import confirm_action, create_cacher, handle_db_errors, log_time
 from src.primitive_db.constants import CONST
 from src.primitive_db.utils import (
     check_table_exists,
-    process_where_clause,
     get_table_columns,
+    process_where_clause,
 )
 
 
@@ -71,7 +71,8 @@ def create_table(table_name: str, table_path: str, columns: list) -> None:
         CONST.DATABASE_PATH is not None and not os.path.exists(CONST.DATABASE_PATH)
     ):
         print(
-            f"DATABASE {CONST.DATABASE_PATH} не подключена, вызовите <load_database> команду"
+            f"DATABASE {CONST.DATABASE_PATH} не подключена, вызовите <load_database> "
+            "команду"
         )
         return
 
@@ -156,7 +157,8 @@ def drop_table(table_name: str):
         CONST.DATABASE_PATH is not None and not os.path.exists(CONST.DATABASE_PATH)
     ):
         print(
-            f"DATABASE {CONST.DATABASE_PATH} не подключена, вызовите <load_database> команду"
+            f"DATABASE {CONST.DATABASE_PATH} не подключена, вызовите <load_database> "
+            "команду"
         )
         return
 
@@ -213,7 +215,8 @@ def list_tables(table_name: str | None = None):
         CONST.DATABASE_PATH is not None and not os.path.exists(CONST.DATABASE_PATH)
     ):
         print(
-            f"DATABASE {CONST.DATABASE_PATH} не подключена, вызовите <load_database> команду"
+            f"DATABASE {CONST.DATABASE_PATH} не подключена, вызовите <load_database> "
+            "команду"
         )
         return
 
