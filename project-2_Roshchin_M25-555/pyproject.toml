@@ -1,15 +1,18 @@
 [project]
-name = "labyrinth-game"
+name = "project_2"
 version = "0.1.0"
 description = ""
 authors = [{ name = "Philipp Roshchin", email = "r.phil@yandex.ru" }]
 license = { text = "MIT" }
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = ["prompt (>=0.4.1,<0.5.0)"]
+
+[tool.poetry]
+packages = [{ include = "src" }]
 
 [tool.poetry.scripts]
-project = "labyrinth_game.main:main"
+project = "src.primitive_db.main:main"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.13.2"
