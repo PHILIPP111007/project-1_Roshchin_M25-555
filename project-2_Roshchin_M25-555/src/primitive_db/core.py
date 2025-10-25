@@ -408,6 +408,7 @@ def delete(table_name: str, where_clause: dict[str, str] | None = None) -> None:
 
             with open(table_path, "w", encoding="utf-8") as file:
                 file.write(keys)
+            print("Все записи успешно удалены")
         return
 
     where_clause_processed = process_where_clause(
@@ -452,9 +453,11 @@ def delete(table_name: str, where_clause: dict[str, str] | None = None) -> None:
                 content.append(values)
             else:
                 values_to_delete += 1
+                print(CONST.SEPARATOR.join(list(row.values())))
 
     with open(table_path, "w", encoding="utf-8") as file:
         content_str = "\n".join(content)
         file.write(content_str)
 
+    print()
     print(f"{values_to_delete} записей удалены")
