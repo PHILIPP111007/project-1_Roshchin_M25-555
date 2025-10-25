@@ -5,6 +5,8 @@
 import os
 import json
 import csv
+import re
+
 from prettytable import from_csv, PrettyTable
 
 from src.primitive_db.constants import CONST
@@ -109,13 +111,10 @@ def create_table(metadata, table_name: str, table_path: str, columns: list) -> N
         return
 
     table_columns = []
-    is_ID_in_columns = False
     for column in columns:
         column_name, column_type = column.split(":")
         if column_name == "ID":
-            is_ID_in_columns = True
-            if column_type != "int":
-                column_type = "int"
+            continue
 
         if column_type not in ["int", "str", "bool"]:
             print(f"Неподдерживаемый формат колонки: {column_type}")
@@ -123,9 +122,8 @@ def create_table(metadata, table_name: str, table_path: str, columns: list) -> N
         column = {"name": column_name, "type": column_type}
         table_columns.append(column)
 
-    if not is_ID_in_columns:
-        column = {"name": "ID", "type": "int"}
-        table_columns.append(column)
+    column_ID = {"name": "ID", "type": "int"}
+    table_columns = [column_ID] + table_columns
 
     table = {"name": table_name, "path": table_path, "columns": table_columns}
     tables.append(table)
@@ -334,10 +332,129 @@ def select(table_name: str, where_clause: dict[str, str] | None = None) -> None:
         print(table)
 
 
-def insert(table_name, values) -> None: ...
+def insert(table_name: str, values: str) -> None:
+    table_path = check_table_exists(table_name=table_name)
+
+    if table_path is None:
+        return None
+
+    values = re.sub(r"\(", "", values)
+    values = re.sub(r"\)", "", values)
+    values_list = values.split(", ")
+
+    columns = get_table_columns(table_name=table_name)
+    if columns is None:
+        return None
+
+    values_to_insert: list[str] = []
+    columns = columns[1:]
+    for column, value in zip(columns, values_list):
+        t = column["type"]
+        processed_value: str | None = None
+        try:
+            if t == "str" and re.match(r'".+"', value):
+                processed_value = re.sub('"', "", value)
+            elif t == "int":
+                processed_value = str(int(value))
+            elif t == "bool" and (value == "true" or value == "false"):
+                if value == "true":
+                    processed_value = str(1)
+                elif value == "false":
+                    processed_value = str(0)
+        except Exception:
+            print(f"Ошибка конвертации значения: {value} типа {t}")
+            return
+
+        if processed_value is None:
+            print(f"Ошибка конвертации значения: {value} типа {t}")
+            return
+        values_to_insert.append(processed_value)
+
+    with open(table_path, "r", encoding="utf-8") as file:
+        lines = file.readlines()
+        if len(lines) == 1:
+            last_ID = 0
+        else:
+            last_line = lines[-1]
+            last_ID = int(last_line.split(CONST.SEPARATOR)[0])
+            last_ID += 1
+
+    values_to_insert = [str(last_ID)] + values_to_insert
+    string = CONST.SEPARATOR.join(values_to_insert)
+    with open(table_path, "a", encoding="utf-8") as file:
+        file.write("\n")
+        file.write(string)
+
+    print(f"Запись с {last_ID=} успешно добавлена в таблицу {table_name}.")
 
 
-def update(table_name: str, set_clause, where_clause) -> None: ...
+def update(
+    table_name: str, set_clause, where_clause: dict[str, str] | None = None
+) -> None: ...
 
 
-def delete(table_name: str, where_clause) -> None: ...
+def delete(table_name: str, where_clause: dict[str, str] | None = None) -> None:
+    table_path = check_table_exists(table_name=table_name)
+
+    if table_path is None:
+        return None
+
+    if where_clause is None:
+        answer = input("Delete all records? (y/n) ")
+        if answer == "y":
+            with open(table_path, "r", encoding="utf-8") as file:
+                reader = csv.reader(file, delimiter=CONST.SEPARATOR)
+                keys = CONST.SEPARATOR.join(reader.__next__())
+
+            with open(table_path, "w", encoding="utf-8") as file:
+                file.write(keys)
+        return
+
+    where_clause_processed = process_where_clause(
+        table_name=table_name, where_clause=where_clause
+    )
+    if where_clause_processed is None:
+        return None
+
+    columns = get_table_columns(table_name=table_name)
+    if columns is None:
+        return None
+
+    content: list[str] = []
+    values_to_delete: int = 0
+    with open(table_path, "r", encoding="utf-8") as file:
+        reader = csv.reader(file, delimiter=CONST.SEPARATOR)
+        keys = CONST.SEPARATOR.join(reader.__next__())
+        content.append(keys)
+
+    with open(table_path, "r", encoding="utf-8") as file:
+        dict_reader = csv.DictReader(file, delimiter=CONST.SEPARATOR)
+        for row in dict_reader:
+            flag = False
+            for key, value in where_clause_processed.items():
+                row_value: str | int | bool | None = None
+                for column in columns:
+                    if column["name"] == key:
+                        t = column["type"]
+                        if t == "str":
+                            row_value = str(row[key])
+                        elif t == "int":
+                            row_value = int(row[key])
+                        elif t == "bool":
+                            row_value = bool(int(row[key]))
+                        break
+
+                if row_value != value:
+                    flag = True
+                    break
+            if flag:
+                values = CONST.SEPARATOR.join(list(row.values()))
+                content.append(values)
+            else:
+                values_to_delete += 1
+
+    with open(table_path, "w", encoding="utf-8") as file:
+        content_str = "\n".join(content)
+        file.write(content_str)
+
+    print(f"{values_to_delete} записей удалены")

@@ -127,11 +127,32 @@ def run():
                 if flag:
                     select(table_name=table_name, where_clause=where_clause)
             elif command == "insert":
-                ...
+                if len(args) < 5 or args[1] != "into" or args[3] != "values":
+                    print("Не приведены данные")
+                    continue
+
+                table_name = args[2]
+                values = " ".join(args[4:])
+                insert(table_name=table_name, values=values)
             elif command == "update":
                 ...
             elif command == "delete":
-                ...
+                if len(args) < 3:
+                    print("Не приведены данные")
+                    continue
+                table_name = args[2]
+                where_clause = None
+
+                flag = True
+                for i in range(len(args)):
+                    if args[i] == "where":
+                        if len(args[i + 1 :]) == 0:
+                            print("Не приведены данные")
+                            flag = False
+                            break
+                        where_clause = parse_expression(args[i + 1 :])
+                if flag:
+                    delete(table_name=table_name, where_clause=where_clause)
             else:
                 print(f"Функции <{command}> нет. Попробуйте снова.")
         except KeyboardInterrupt:

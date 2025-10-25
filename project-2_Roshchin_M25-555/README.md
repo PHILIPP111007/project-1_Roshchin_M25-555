@@ -19,13 +19,21 @@ create_database DB /Users/phil/GitHub/masters_degree_Roshchin_M25-555/db
 
 load_database /Users/phil/GitHub/masters_degree_Roshchin_M25-555/db.json
 
-create_table table_1 /Users/phil/GitHub/masters_degree_Roshchin_M25-555/table_1.csv name:str ID:int is_active:bool is_superuser:bool
+create_table table_1 /Users/phil/GitHub/masters_degree_Roshchin_M25-555/table_1.csv name:str ID:int age:int is_active:bool is_superuser:bool
 
 list_tables
 
 info table_1
 
+insert into table_1 values ("Konstantin", 28, true, false)
+
 select from table_1
 
 select from table_1 where is_active=1 AND is_superuser=1
+
+delete from table_1 # Deletes all records
+
+delete from table_1 where ID=0
+
+delete from table_1 where ID=0 AND name="Konstantin"
 ```
