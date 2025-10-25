@@ -1,17 +1,158 @@
+import os
 import json
+import re
+
+from src.primitive_db.constants import CONST
 
 
-def load_metadata(file_path: str) -> None:
-    """Загружает данные из JSON-файла"""
+def check_table_exists(table_name: str) -> str | None:
+    """
+    Check if table exists and returns table path.
+    """
 
-    try:
-        with open(file_path, "r", encoding="utf-8") as file:
-            data = json.load(file)
-            return data
-    except FileNotFoundError:
-        print("Такого файла нет.")
+    if CONST.DATABASE_PATH is None or (
+        CONST.DATABASE_PATH is not None and not os.path.exists(CONST.DATABASE_PATH)
+    ):
+        print(
+            f"DATABASE {CONST.DATABASE_PATH} не подключена, вызовите <load_database> команду"
+        )
+        return None
+
+    with open(CONST.DATABASE_PATH, "r", encoding="utf-8") as file:
+        data: dict = json.load(file)
+
+    tables = data.get("tables")
+    if not isinstance(tables, list):
+        print("Данные повреждены")
+        return None
+
+    for table in tables:
+        if not isinstance(table, dict):
+            continue
+        name = table.get("name")
+        if name == table_name:
+            path = table.get("path")
+            if path is not None and os.path.exists(path):
+                return path
+            else:
+                print(f"Таблицы {table_name} не существует")
+                return None
+    print(f"Таблицы {table_name} не существует")
+    return None
 
 
-def save_metadata(file_path: str, data) -> None:
-    with open(file_path, "w", encoding="utf-8") as file:
-        json.dump(data, file)
+def get_table_columns(table_name: str) -> list[dict[str, str]] | None:
+    if CONST.DATABASE_PATH is None or (
+        CONST.DATABASE_PATH is not None and not os.path.exists(CONST.DATABASE_PATH)
+    ):
+        print(
+            f"DATABASE {CONST.DATABASE_PATH} не подключена, вызовите <load_database> команду"
+        )
+        return None
+
+    with open(CONST.DATABASE_PATH, "r", encoding="utf-8") as file:
+        data: dict = json.load(file)
+
+    tables = data.get("tables")
+    if not isinstance(tables, list):
+        print("Данные повреждены")
+        return None
+
+    for table in tables:
+        if not isinstance(table, dict):
+            continue
+        name = table.get("name")
+        if name == table_name:
+            columns: list[dict[str, str]] | None = table.get("columns")
+            return columns
+    return None
+
+
+def process_where_clause(
+    table_name: str, where_clause: dict[str, str]
+) -> dict[str, str | int | bool] | None:
+    columns = get_table_columns(table_name=table_name)
+    if columns is None:
+        return None
+
+    where_clause_processed: dict[str, str | int | bool] = {}
+    for key, value in where_clause.items():
+        for column in columns:
+            if column["name"] != key:
+                continue
+            t = column["type"]
+
+            new_value: str | int | bool | None = None
+            try:
+                if t == "str":
+                    new_value = str(value)
+                elif t == "int":
+                    new_value = int(value)
+                elif t == "bool":
+                    new_value = bool(int(value))
+            except Exception:
+                print(f"Ошибка конвертации данных: {value} типа {t}")
+                return None
+
+            if new_value is None:
+                return None
+            where_clause_processed[key] = new_value
+    return where_clause_processed
+
+
+def parse_expression(where_clause: list[str]) -> dict[str, str]:
+    """
+    Парсит условие WHERE из SQL-запроса и возвращает словарь с условиями.
+
+    Args:
+        where_clause: Список строк с условиями после WHERE
+
+    Returns:
+        Словарь, где ключи - названия полей, значения - условия
+    """
+    # Объединяем все части условия в одну строку
+    condition_str = " ".join(where_clause).strip()
+
+    # Убираем возможные кавычки и лишние пробелы
+    condition_str = re.sub(r"\s+", " ", condition_str)
+
+    result = {}
+
+    # Разбиваем на отдельные условия по AND/OR (базовый случай)
+    # Используем более сложное регулярное выражение для корректного разбиения
+    conditions = re.split(r"\s+(AND|OR)\s+", condition_str, flags=re.IGNORECASE)
+
+    # Фильтруем - оставляем только условия, убирая операторы AND/OR
+    conditions = [cond for cond in conditions if cond.upper() not in ["AND", "OR"]]
+
+    for condition in conditions:
+        condition = condition.strip()
+        if not condition:
+            continue
+
+        # Паттерны для разных типов условий
+        patterns = [
+            # Простое равенство: field = value
+            r"^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+)$",
+            # Неравенство: field != value или field <> value
+            r"^([a-zA-Z_][a-zA-Z0-9_]*)\s*(!=|<>)\s*(.+)$",
+            # Сравнения: field > value, field < value, field >= value, field <= value
+            r"^([a-zA-Z_][a-zA-Z0-9_]*)\s*(>|<|>=|<=)\s*(.+)$",
+        ]
+
+        for pattern in patterns:
+            match = re.match(pattern, condition, re.IGNORECASE)
+            if match:
+                if len(match.groups()) == 2:
+                    field, value = match.groups()
+                    value = re.sub('"', "", value)
+                    result[field] = value.strip()
+                elif len(match.groups()) == 3:
+                    field, operator, value = match.groups()
+                    result[field] = f"{operator} {value}".strip()
+                break
+        else:
+            # Если ни один паттерн не подошел, добавляем как есть
+            result["unknown"] = condition
+
+    return result

@@ -1,13 +1,18 @@
 import sys
 
 from src.primitive_db.core import (
-    DATABASE_PATH,
     create_table,
     drop_table,
     list_tables,
     create_database,
     load_database,
+    info,
+    select,
+    insert,
+    update,
+    delete,
 )
+from src.primitive_db.utils import parse_expression
 
 
 def run():
@@ -29,6 +34,14 @@ def run():
 * <command> create_table <имя_таблицы> <table_path> <столбец1:тип> <столбец2:тип> .. - создать таблицу
 * <command> list_tables - показать список всех таблиц
 * <command> drop_table <имя_таблицы> - удалить таблицу
+* <command> info <имя_таблицы> - вывести информацию о таблице.
+
+* <command> insert into <имя_таблицы> values (<значение1>, <значение2>, ...) - создать запись.
+* <command> select from <имя_таблицы> where <столбец> = <значение> - прочитать записи по условию.
+* <command> select from <имя_таблицы> - прочитать все записи.
+* <command> update <имя_таблицы> set <столбец1> = <новое_значение1> where <столбец_условия> = <значение_условия> - обновить запись.
+* <command> delete from <имя_таблицы> where <столбец> = <значение> - удалить запись.
+
 * <command> exit - выход из программы
 * <command> help - справочная информация
 """
@@ -90,6 +103,35 @@ def run():
                 table_name = args[1]
                 metadata = {}  # TODO
                 drop_table(metadata=metadata, table_name=table_name)
+            elif command == "info":
+                if len(args) != 2:
+                    print("Не приведены данные")
+                    continue
+                table_name = args[1]
+                info(table_name=table_name)
+            elif command == "select":
+                if len(args) < 3:
+                    print("Не приведены данные")
+                    continue
+                table_name = args[2]
+                where_clause = None
+
+                flag = True
+                for i in range(len(args)):
+                    if args[i] == "where":
+                        if len(args[i + 1 :]) == 0:
+                            print("Не приведены данные")
+                            flag = False
+                            break
+                        where_clause = parse_expression(args[i + 1 :])
+                if flag:
+                    select(table_name=table_name, where_clause=where_clause)
+            elif command == "insert":
+                ...
+            elif command == "update":
+                ...
+            elif command == "delete":
+                ...
             else:
                 print(f"Функции <{command}> нет. Попробуйте снова.")
         except KeyboardInterrupt:

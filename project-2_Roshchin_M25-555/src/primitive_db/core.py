@@ -4,13 +4,18 @@
 
 import os
 import json
+import csv
+from prettytable import from_csv, PrettyTable
 
-DATABASE_PATH = None
+from src.primitive_db.constants import CONST
+from src.primitive_db.utils import (
+    check_table_exists,
+    process_where_clause,
+    get_table_columns,
+)
 
 
 def load_database(file_path: str) -> None:
-    global DATABASE_PATH
-
     if not os.path.exists(file_path):
         print(f"DATABASE {file_path} не существует")
         return
@@ -19,9 +24,9 @@ def load_database(file_path: str) -> None:
         print("Это директория")
         return
 
-    DATABASE_PATH = file_path
+    CONST.DATABASE_PATH = file_path
 
-    with open(DATABASE_PATH, "r", encoding="utf-8") as file:
+    with open(CONST.DATABASE_PATH, "r", encoding="utf-8") as file:
         data: dict = json.load(file)
 
     database_name = data.get("name")
@@ -33,21 +38,22 @@ def load_database(file_path: str) -> None:
 
 
 def create_database(file_path: str, database_name: str) -> None:
-    global DATABASE_PATH
+    if not file_path.endswith(".json"):
+        file_path += ".json"
 
     if os.path.exists(file_path):
         if not os.path.isfile(file_path):
             print("Это директория")
             return
         print(f"DATABASE {file_path} уже существует")
-        DATABASE_PATH = file_path
+        CONST.DATABASE_PATH = file_path
         return
 
     database = {"name": database_name, "tables": []}
 
     with open(file_path, "w", encoding="utf-8") as file:
         json.dump(database, file)
-        DATABASE_PATH = file_path
+        CONST.DATABASE_PATH = file_path
         print(f"DATABASE {database_name} создана")
 
 
@@ -60,19 +66,19 @@ def create_table(metadata, table_name: str, table_path: str, columns: list) -> N
     5) В случае успеха, обновлять словарь metadata и возвращать его.
     """
 
-    if DATABASE_PATH is None or (
-        DATABASE_PATH is not None and not os.path.exists(DATABASE_PATH)
+    if CONST.DATABASE_PATH is None or (
+        CONST.DATABASE_PATH is not None and not os.path.exists(CONST.DATABASE_PATH)
     ):
         print(
-            f"DATABASE {DATABASE_PATH} не подключена, вызовите <load_database> команду"
+            f"DATABASE {CONST.DATABASE_PATH} не подключена, вызовите <load_database> команду"
         )
         return
 
-    if not os.path.isfile(DATABASE_PATH):
+    if not os.path.isfile(CONST.DATABASE_PATH):
         print("Это директория")
         return
 
-    with open(DATABASE_PATH, "r", encoding="utf-8") as file:
+    with open(CONST.DATABASE_PATH, "r", encoding="utf-8") as file:
         data: dict = json.load(file)
 
     database_name = data.get("name")
@@ -103,27 +109,39 @@ def create_table(metadata, table_name: str, table_path: str, columns: list) -> N
         return
 
     table_columns = []
+    is_ID_in_columns = False
     for column in columns:
         column_name, column_type = column.split(":")
+        if column_name == "ID":
+            is_ID_in_columns = True
+            if column_type != "int":
+                column_type = "int"
+
         if column_type not in ["int", "str", "bool"]:
             print(f"Неподдерживаемый формат колонки: {column_type}")
             continue
         column = {"name": column_name, "type": column_type}
         table_columns.append(column)
 
+    if not is_ID_in_columns:
+        column = {"name": "ID", "type": "int"}
+        table_columns.append(column)
+
     table = {"name": table_name, "path": table_path, "columns": table_columns}
     tables.append(table)
     data["tables"] = tables
 
-    with open(DATABASE_PATH, "w", encoding="utf-8") as file:
+    with open(CONST.DATABASE_PATH, "w", encoding="utf-8") as file:
         json.dump(data, file)
 
     with open(table_path, "w", encoding="utf-8") as file:
-        columns_to_write = []
+        columns_to_write = ["ID"]
         for column in table_columns:
             column_name = column["name"]
+            if column_name == "ID":
+                continue
             columns_to_write.append(column_name)
-        string = "\t".join(columns_to_write)
+        string = CONST.SEPARATOR.join(columns_to_write)
         file.write(string)
 
     print(f"Таблица {table_name} создана")
@@ -135,19 +153,19 @@ def drop_table(metadata, table_name):
     2) Удаляет информацию о таблице из metadata и возвращает обновленный словарь.
     """
 
-    if DATABASE_PATH is None or (
-        DATABASE_PATH is not None and not os.path.exists(DATABASE_PATH)
+    if CONST.DATABASE_PATH is None or (
+        CONST.DATABASE_PATH is not None and not os.path.exists(CONST.DATABASE_PATH)
     ):
         print(
-            f"DATABASE {DATABASE_PATH} не подключена, вызовите <load_database> команду"
+            f"DATABASE {CONST.DATABASE_PATH} не подключена, вызовите <load_database> команду"
         )
         return
 
-    if not os.path.isfile(DATABASE_PATH):
+    if not os.path.isfile(CONST.DATABASE_PATH):
         print("Это директория")
         return
 
-    with open(DATABASE_PATH, "r", encoding="utf-8") as file:
+    with open(CONST.DATABASE_PATH, "r", encoding="utf-8") as file:
         data: dict = json.load(file)
 
     database_name = data.get("name")
@@ -182,24 +200,26 @@ def drop_table(metadata, table_name):
     tables = list(filter(lambda table: table["name"] != table_name, tables))
     data["tables"] = tables
 
-    with open(DATABASE_PATH, "w", encoding="utf-8") as file:
+    with open(CONST.DATABASE_PATH, "w", encoding="utf-8") as file:
         json.dump(data, file)
 
     print(f"Таблица {table_name} удалена")
 
 
-def list_tables():
-    if not os.path.exists(DATABASE_PATH):
+def list_tables(table_name: str | None = None):
+    if CONST.DATABASE_PATH is None or (
+        CONST.DATABASE_PATH is not None and not os.path.exists(CONST.DATABASE_PATH)
+    ):
         print(
-            f"DATABASE {DATABASE_PATH} не подключена, вызовите <load_database> команду"
+            f"DATABASE {CONST.DATABASE_PATH} не подключена, вызовите <load_database> команду"
         )
         return
 
-    if not os.path.isfile(DATABASE_PATH):
+    if not os.path.isfile(CONST.DATABASE_PATH):
         print("Это директория")
         return
 
-    with open(DATABASE_PATH, "r", encoding="utf-8") as file:
+    with open(CONST.DATABASE_PATH, "r", encoding="utf-8") as file:
         data: dict = json.load(file)
 
     database_name = data.get("name")
@@ -213,6 +233,7 @@ def list_tables():
         return
     print()
 
+    table_cycle_flag = True
     for table in tables:
         if not isinstance(table, dict):
             continue
@@ -222,6 +243,9 @@ def list_tables():
 
         if name is None or columns is None or path is None:
             continue
+
+        if table_name is not None and table_name == name:
+            table_cycle_flag = False
 
         print(f"Table: {name}")
         print(f"Table path: {path}")
@@ -237,6 +261,83 @@ def list_tables():
 
             strings.append(f"{column_name} : {column_type}")
 
-        strings = " | ".join(strings)
-        print(strings)
-        print("-" * len(strings))
+        strings_lst = " | ".join(strings)
+        print(strings_lst)
+        print("-" * len(strings_lst))
+
+        if not table_cycle_flag:
+            break
+
+
+def info(table_name: str) -> None:
+    table_path = check_table_exists(table_name=table_name)
+
+    if table_path is None:
+        return None
+
+    list_tables(table_name=table_name)
+
+
+def select(table_name: str, where_clause: dict[str, str] | None = None) -> None:
+    table_path = check_table_exists(table_name=table_name)
+
+    if table_path is None:
+        return None
+
+    content = []
+    table = PrettyTable()
+    with open(table_path, "r", encoding="utf-8") as file:
+        if where_clause is None:
+            table = from_csv(file, delimiter=CONST.SEPARATOR)
+            print(table)
+            return
+
+        reader = csv.DictReader(file, delimiter=CONST.SEPARATOR)
+        keys = list(reader.__next__().keys())
+        table.field_names = keys
+
+    where_clause_processed = process_where_clause(
+        table_name=table_name, where_clause=where_clause
+    )
+    if where_clause_processed is None:
+        return None
+
+    columns = get_table_columns(table_name=table_name)
+    if columns is None:
+        return None
+
+    with open(table_path, "r", encoding="utf-8") as file:
+        reader = csv.DictReader(file, delimiter=CONST.SEPARATOR)
+        for row in reader:
+            flag = True
+            for key, value in where_clause_processed.items():
+                row_value: str | int | bool | None = None
+                for column in columns:
+                    if column["name"] == key:
+                        t = column["type"]
+                        if t == "str":
+                            row_value = str(row[key])
+                        elif t == "int":
+                            row_value = int(row[key])
+                        elif t == "bool":
+                            row_value = bool(int(row[key]))
+                        break
+
+                if row_value != value:
+                    flag = False
+                    break
+            if flag:
+                values = list(row.values())
+                content.append(values)
+
+        table.add_rows(content)
+        print(table)
+
+
+def insert(table_name, values) -> None: ...
+
+
+def update(table_name: str, set_clause, where_clause) -> None: ...
+
+
+def delete(table_name: str, where_clause) -> None: ...
