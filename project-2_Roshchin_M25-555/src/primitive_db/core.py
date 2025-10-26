@@ -520,15 +520,13 @@ def delete(table_name: str, where_clause: dict[str, str] | None = None) -> None:
         return None
 
     if where_clause is None:
-        answer = input("Delete all records? (y/n) ")
-        if answer == "y":
-            with open(table_path, "r", encoding="utf-8") as file:
-                reader = csv.reader(file, delimiter=CONST.SEPARATOR)
-                keys = CONST.SEPARATOR.join(reader.__next__())
+        with open(table_path, "r", encoding="utf-8") as file:
+            reader = csv.reader(file, delimiter=CONST.SEPARATOR)
+            keys = CONST.SEPARATOR.join(reader.__next__())
 
-            with open(table_path, "w", encoding="utf-8") as file:
-                file.write(keys)
-            print("Все записи успешно удалены")
+        with open(table_path, "w", encoding="utf-8") as file:
+            file.write(keys)
+        print("Все записи успешно удалены")
         return
 
     where_clause_processed = process_where_clause(
