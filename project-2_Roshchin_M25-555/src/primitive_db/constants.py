@@ -1,8 +1,12 @@
-class Constants:
-    def __init__(self):
-        self.DATABASE_PATH = None
-        self.SEPARATOR = ";"
-        self.CACHE = {}
+def constants():
+    """Возвращает модуль как объект констант"""
+    import sys
+
+    return sys.modules[__name__]
 
 
-CONST = Constants()
+constants().DATABASE_PATH = None
+constants().SEPARATOR = ";"
+constants().CACHE = {}
+
+CONST = constants()
